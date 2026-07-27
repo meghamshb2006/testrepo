@@ -1,7 +1,11 @@
+import re
 from typing import Any
 
 from search.database import SearchDatabase
 from search.models.search_document import SearchDocument
+
+
+_FTS_OPERATOR_PATTERN = re.compile(r"^\s*(AND|OR|NOT)\s*$", re.IGNORECASE)
 
 
 class SearchRepository:
@@ -175,29 +179,60 @@ class SearchRepository:
 
         return int(cursor.fetchone()[0])
 
+    @staticmethod
+    def _prepare_fts_query(query: str) -> str:
+        prepared_tokens: list[str] = []
+
+        for token in query.split():
+            if _FTS_OPERATOR_PATTERN.match(token):
+                prepared_tokens.append(token.upper())
+                continue
+
+            if token.startswith('"') and token.endswith('"'):
+                prepared_tokens.append(token)
+                continue
+
+            if any(character in token for character in "-_/+."):
+                prepared_tokens.append(f'"{token}"')
+
+                continue
+
+            prepared_tokens.append(token)
+
+        return " ".join(prepared_tokens)
+
     def search_fts(
         self,
         query: str,
         limit: int = 10,
     ) -> list[dict[str, Any]]:
+        if not isinstance(query, str):
+            raise TypeError("query must be a string.")
+
+        if not query.strip():
+            raise ValueError("query must not be blank.")
+
+        if not isinstance(limit, int):
+            raise TypeError("limit must be an integer.")
+
+        if limit < 1:
+            raise ValueError("limit must be at least 1.")
+
         cursor = self.database.conn.cursor()
 
         cursor.execute(
             """
             SELECT
-                drawing_id,
-                filename,
-                drawing_number,
-                title,
-                material,
-                searchable_text,
-                bm25(drawing_search_fts) AS score
+                d.*,
+                bm25(drawing_search_fts) AS fts_score
             FROM drawing_search_fts
+            JOIN drawing_search_documents AS d
+                ON d.drawing_id = drawing_search_fts.drawing_id
             WHERE drawing_search_fts MATCH ?
-            ORDER BY score
+            ORDER BY fts_score ASC
             LIMIT ?
             """,
-            (query, limit),
+            (self._prepare_fts_query(query), limit),
         )
 
         return [dict(row) for row in cursor.fetchall()]

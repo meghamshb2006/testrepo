@@ -8,7 +8,10 @@ class SearchEngine(ABC):
     """
 
     @abstractmethod
-    def build_index(self) -> None:
+    def build_index(
+        self,
+        documents: list[Any] | None = None,
+    ) -> None:
         """
         Build or rebuild the search index.
         """

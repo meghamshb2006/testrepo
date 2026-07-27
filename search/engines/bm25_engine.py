@@ -13,9 +13,25 @@ class BM25SearchEngine(SearchEngine):
     """
     Real BM25 search engine backed by SearchRepository documents.
 
-    The index is built from searchable_text stored in SQLite.
-    Search results contain real BM25 scores and matched query terms.
+    The index can be built from the full repository or from a supplied
+    candidate document list for two-stage retrieval.
     """
+
+    _RESULT_FIELDS = (
+        "drawing_id",
+        "filename",
+        "drawing_number",
+        "revision",
+        "title",
+        "material",
+        "finish",
+        "units",
+        "part_numbers",
+        "dimensions_text",
+        "tolerances_text",
+        "notes_text",
+        "searchable_text",
+    )
 
     def __init__(
         self,
@@ -62,23 +78,32 @@ class BM25SearchEngine(SearchEngine):
         mapping = cls._document_to_mapping(document)
         return mapping.get(field_name, default)
 
-    def build_index(self) -> None:
-        repository_documents = self.repository.list_all()
+    def _clear_index(self) -> None:
+        self._documents = []
+        self._tokenised_corpus = []
+        self._index = None
 
-        if not repository_documents:
-            self._documents = []
-            self._tokenised_corpus = []
-            self._index = None
+    def build_index(
+        self,
+        documents: list[Any] | None = None,
+    ) -> None:
+        if documents is None:
+            source_documents = self.repository.list_all()
+        else:
+            source_documents = documents
+
+        if not source_documents:
+            self._clear_index()
 
             raise ValueError(
-                "Cannot build the BM25 index because SQLite contains "
-                "no search documents."
+                "Cannot build the BM25 index because no documents were "
+                "supplied."
             )
 
         usable_documents: list[Any] = []
         tokenised_corpus: list[list[str]] = []
 
-        for document in repository_documents:
+        for document in source_documents:
             searchable_text = self._get_value(
                 document,
                 "searchable_text",
@@ -87,6 +112,9 @@ class BM25SearchEngine(SearchEngine):
 
             if not isinstance(searchable_text, str):
                 searchable_text = str(searchable_text or "")
+
+            if not searchable_text.strip():
+                continue
 
             tokens = self.processor.preprocess(searchable_text)
 
@@ -97,9 +125,7 @@ class BM25SearchEngine(SearchEngine):
             tokenised_corpus.append(tokens)
 
         if not usable_documents:
-            self._documents = []
-            self._tokenised_corpus = []
-            self._index = None
+            self._clear_index()
 
             raise ValueError(
                 "Search documents exist, but none contain searchable text."
@@ -108,6 +134,53 @@ class BM25SearchEngine(SearchEngine):
         self._documents = usable_documents
         self._tokenised_corpus = tokenised_corpus
         self._index = BM25Okapi(tokenised_corpus)
+
+    def _build_result(
+        self,
+        document: Any,
+        score: float,
+        matched_terms: list[str],
+        rank: int,
+    ) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "rank": rank,
+            "bm25_score": round(score, 6),
+            "matched_terms": matched_terms,
+        }
+
+        for field_name in self._RESULT_FIELDS:
+            result[field_name] = self._get_value(document, field_name)
+
+        fts_score = self._get_value(document, "fts_score")
+
+        if fts_score is not None:
+            result["fts_score"] = fts_score
+
+        return result
+
+    def _collect_matched_terms(
+        self,
+        query_tokens: list[str],
+        document_tokens: list[str],
+    ) -> list[str]:
+        document_token_set = set(document_tokens)
+        matched: set[str] = set()
+
+        for query_token in query_tokens:
+            if query_token in document_token_set:
+                matched.add(query_token)
+                continue
+
+            for document_token in document_tokens:
+                if document_token.startswith(f"{query_token}-"):
+                    matched.add(query_token)
+                    break
+
+                if document_token.startswith(f"{query_token}_"):
+                    matched.add(query_token)
+                    break
+
+        return sorted(matched)
 
     def search(
         self,
@@ -149,57 +222,25 @@ class BM25SearchEngine(SearchEngine):
         for position in ranked_positions:
             score = float(scores[position])
 
-            if score <= 0:
-                continue
-
             document = self._documents[position]
             document_tokens = self._tokenised_corpus[position]
 
-            matched_terms = sorted(
-                set(query_tokens).intersection(document_tokens)
+            matched_terms = self._collect_matched_terms(
+                query_tokens,
+                document_tokens,
             )
 
-            result = {
-                "rank": len(results) + 1,
-                "drawing_id": self._get_value(
-                    document,
-                    "drawing_id",
-                ),
-                "filename": self._get_value(
-                    document,
-                    "filename",
-                ),
-                "drawing_number": self._get_value(
-                    document,
-                    "drawing_number",
-                ),
-                "revision": self._get_value(
-                    document,
-                    "revision",
-                ),
-                "title": self._get_value(
-                    document,
-                    "title",
-                ),
-                "material": self._get_value(
-                    document,
-                    "material",
-                ),
-                "part_numbers": self._get_value(
-                    document,
-                    "part_numbers",
-                    [],
-                ),
-                "bm25_score": round(score, 6),
-                "matched_terms": matched_terms,
-                "searchable_text": self._get_value(
-                    document,
-                    "searchable_text",
-                    "",
-                ),
-            }
+            if not matched_terms:
+                continue
 
-            results.append(result)
+            results.append(
+                self._build_result(
+                    document=document,
+                    score=score,
+                    matched_terms=matched_terms,
+                    rank=len(results) + 1,
+                )
+            )
 
             if len(results) >= top_k:
                 break
