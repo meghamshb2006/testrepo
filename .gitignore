@@ -1,0 +1,33 @@
+﻿# Environment variables and secrets
+.env
+.env.*
+!.env.example
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# IDE and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Runtime databases and generated document data
+data/*.db
+data/documents/
+
+# Logs and temporary files
+*.log
+*.tmp
+*.bak
+
+# Packaging
+build/
+dist/
+*.egg-info/
