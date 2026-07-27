@@ -2,5 +2,11 @@ fastapi
 uvicorn
 python-multipart
 pymupdf
+pillow
+pydantic
 openai
 python-dotenv
+nltk
+rank-bm25
+pytest
+sqlite-vec

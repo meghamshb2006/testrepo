@@ -15,6 +15,11 @@ DRAWING_DATABASE_PATH = os.getenv(
     "data/engineering_drawings.db",
 )
 
+SEARCH_DATABASE_PATH = os.getenv(
+    "SEARCH_DATABASE_PATH",
+    "data/drawing_search.db",
+)
+
 EMBEDDING_API_KEY = os.getenv(
     "EMBEDDING_API_KEY",
     OPENAI_API_KEY,

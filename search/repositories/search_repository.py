@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Any
 
 from search.database import SearchDatabase
 from search.models.search_document import SearchDocument
@@ -20,6 +20,8 @@ class SearchRepository:
                 revision,
                 title,
                 material,
+                finish,
+                units,
                 part_numbers,
                 dimensions_text,
                 tolerances_text,
@@ -29,13 +31,15 @@ class SearchRepository:
                 created_at,
                 updated_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(drawing_id) DO UPDATE SET
                 filename = excluded.filename,
                 drawing_number = excluded.drawing_number,
                 revision = excluded.revision,
                 title = excluded.title,
                 material = excluded.material,
+                finish = excluded.finish,
+                units = excluded.units,
                 part_numbers = excluded.part_numbers,
                 dimensions_text = excluded.dimensions_text,
                 tolerances_text = excluded.tolerances_text,
@@ -51,6 +55,8 @@ class SearchRepository:
                 document.revision,
                 document.title,
                 document.material,
+                document.finish,
+                document.units,
                 document.part_numbers,
                 document.dimensions_text,
                 document.tolerances_text,
@@ -75,13 +81,15 @@ class SearchRepository:
                 drawing_number,
                 title,
                 material,
+                finish,
+                units,
                 part_numbers,
                 dimensions_text,
                 tolerances_text,
                 notes_text,
                 searchable_text
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 document.drawing_id,
@@ -89,6 +97,8 @@ class SearchRepository:
                 document.drawing_number or "",
                 document.title or "",
                 document.material or "",
+                document.finish or "",
+                document.units or "",
                 document.part_numbers,
                 document.dimensions_text,
                 document.tolerances_text,
@@ -99,10 +109,7 @@ class SearchRepository:
 
         self.database.conn.commit()
 
-    def get_by_drawing_id(
-        self,
-        drawing_id: str,
-    ) -> Optional[dict]:
+    def get_by_drawing_id(self, drawing_id: str) -> dict[str, Any] | None:
         cursor = self.database.conn.cursor()
 
         cursor.execute(
@@ -118,7 +125,7 @@ class SearchRepository:
 
         return dict(row) if row else None
 
-    def list_all(self) -> list[dict]:
+    def list_all(self) -> list[dict[str, Any]]:
         cursor = self.database.conn.cursor()
 
         cursor.execute(
@@ -172,7 +179,7 @@ class SearchRepository:
         self,
         query: str,
         limit: int = 10,
-    ) -> list[dict]:
+    ) -> list[dict[str, Any]]:
         cursor = self.database.conn.cursor()
 
         cursor.execute(

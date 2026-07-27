@@ -1,103 +1,132 @@
 from datetime import datetime, timezone
-from typing import Any
 
+from app.schemas import (
+    Dimension,
+    DrawingAnalysis,
+    DrawingCallout,
+    DatumReference,
+    FeatureControlFrame,
+)
 from search.models.search_document import SearchDocument
 
 
 class SearchDocumentBuilder:
-    """Converts drawing-analysis data into a flattened search document."""
+    """Flattens a rich DrawingAnalysis into a SearchDocument."""
 
     @staticmethod
-    def _as_text(value: Any) -> str:
-        if value is None:
-            return ""
+    def _join_parts(parts: list[str | None]) -> str:
+        return " ".join(
+            part.strip()
+            for part in parts
+            if part and part.strip()
+        )
 
-        if isinstance(value, str):
-            return value.strip()
+    @staticmethod
+    def _format_dimension(dimension: Dimension) -> str:
+        parts = [dimension.value]
 
-        if isinstance(value, (int, float, bool)):
-            return str(value)
+        if dimension.tolerance:
+            parts.append(dimension.tolerance)
 
-        if isinstance(value, list):
-            parts = [SearchDocumentBuilder._as_text(item) for item in value]
-            return " ".join(part for part in parts if part)
+        if dimension.dimension_type:
+            parts.append(dimension.dimension_type)
 
-        if isinstance(value, dict):
-            parts = []
+        if dimension.reference:
+            parts.append(dimension.reference)
 
-            for key, item in value.items():
-                item_text = SearchDocumentBuilder._as_text(item)
+        if dimension.view:
+            parts.append(dimension.view)
 
-                if item_text:
-                    readable_key = key.replace("_", " ")
-                    parts.append(f"{readable_key} {item_text}")
+        return " ".join(parts)
 
-            return " ".join(parts)
+    @staticmethod
+    def _format_feature_control_frame(frame: FeatureControlFrame) -> str:
+        if frame.raw_text:
+            return frame.raw_text.strip()
 
-        return str(value).strip()
+        parts: list[str] = []
+
+        if frame.characteristic:
+            parts.append(frame.characteristic)
+
+        if frame.tolerance:
+            parts.append(frame.tolerance)
+
+        if frame.datums:
+            parts.extend(frame.datums)
+
+        return " ".join(parts)
+
+    @staticmethod
+    def _format_callout(callout: DrawingCallout) -> str:
+        if callout.text:
+            return f"{callout.identifier} {callout.text}".strip()
+
+        return callout.identifier
+
+    @staticmethod
+    def _format_datum(datum: DatumReference) -> str:
+        if datum.description:
+            return f"{datum.label} {datum.description}".strip()
+
+        return datum.label
 
     def build(
         self,
         drawing_id: str,
         filename: str,
-        analysis: dict[str, Any],
+        analysis: DrawingAnalysis,
     ) -> SearchDocument:
         now = datetime.now(timezone.utc)
+        metadata = analysis.metadata
 
-        drawing_number = self._as_text(
-            analysis.get("drawing_number")
-            or analysis.get("document_number")
+        dimensions_text = self._join_parts(
+            [self._format_dimension(dimension) for dimension in analysis.dimensions]
         )
 
-        revision = self._as_text(analysis.get("revision"))
-
-        title = self._as_text(
-            analysis.get("title")
-            or analysis.get("drawing_title")
-            or analysis.get("part_name")
+        tolerances_text = self._join_parts(
+            list(analysis.general_tolerances)
+            + [
+                self._format_feature_control_frame(frame)
+                for frame in analysis.feature_control_frames
+            ]
         )
 
-        material = self._as_text(analysis.get("material"))
-
-        part_numbers = self._as_text(
-            analysis.get("part_numbers")
-            or analysis.get("parts")
-            or analysis.get("bill_of_materials")
-            or analysis.get("bom")
+        notes_text = self._join_parts(
+            list(analysis.manufacturing_notes)
+            + list(analysis.inspection_notes)
         )
 
-        dimensions_text = self._as_text(
-            analysis.get("dimensions")
-            or analysis.get("measurements")
+        part_numbers = self._join_parts(
+            [self._format_callout(callout) for callout in analysis.callouts]
         )
 
-        tolerances_text = self._as_text(
-            analysis.get("tolerances")
-            or analysis.get("general_tolerance")
+        datums_text = self._join_parts(
+            [self._format_datum(datum) for datum in analysis.datums]
         )
 
-        notes_text = self._as_text(
-            analysis.get("notes")
-            or analysis.get("manufacturing_notes")
-            or analysis.get("technical_notes")
-        )
+        symbols_text = self._join_parts(analysis.detected_symbols)
 
-        searchable_sections = [
-            filename,
-            drawing_number,
-            revision,
-            title,
-            material,
-            part_numbers,
-            dimensions_text,
-            tolerances_text,
-            notes_text,
-        ]
-
-        searchable_text = " ".join(
-            section.strip()
-            for section in searchable_sections
-            if section and section.strip()
+        searchable_text = self._join_parts(
+            [
+                filename,
+                metadata.drawing_number,
+                metadata.revision,
+                metadata.title,
+                metadata.material,
+                metadata.finish,
+                metadata.units,
+                part_numbers,
+                dimensions_text,
+                tolerances_text,
+                notes_text,
+                datums_text,
+                symbols_text,
+                analysis.component_description,
+                analysis.summary,
+                self._join_parts(analysis.ambiguities),
+                self._join_parts(analysis.unreadable_regions),
+            ]
         )
 
         if not searchable_text:
@@ -108,18 +137,18 @@ class SearchDocumentBuilder:
         return SearchDocument(
             drawing_id=drawing_id,
             filename=filename,
-            drawing_number=drawing_number or None,
-            revision=revision or None,
-            title=title or None,
-            material=material or None,
+            drawing_number=metadata.drawing_number,
+            revision=metadata.revision,
+            title=metadata.title,
+            material=metadata.material,
+            finish=metadata.finish,
+            units=metadata.units,
             part_numbers=part_numbers,
             dimensions_text=dimensions_text,
             tolerances_text=tolerances_text,
             notes_text=notes_text,
             searchable_text=searchable_text,
-            analysis_version=self._as_text(
-                analysis.get("analysis_version")
-            ) or "1.0",
+            analysis_version="1.0",
             created_at=now,
             updated_at=now,
         )

@@ -21,6 +21,7 @@ Thumbs.db
 # Runtime databases and generated document data
 data/*.db
 data/documents/
+data/**/*.png
 
 # Logs and temporary files
 *.log
