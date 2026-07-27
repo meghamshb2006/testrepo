@@ -183,7 +183,12 @@ class SearchRepository:
     def _prepare_fts_query(query: str) -> str:
         prepared_tokens: list[str] = []
 
-        for token in query.split():
+        for raw_token in query.split():
+            token = raw_token.strip("?.!,;:\"'()[]{}")
+
+            if not token:
+                continue
+
             if _FTS_OPERATOR_PATTERN.match(token):
                 prepared_tokens.append(token.upper())
                 continue
@@ -194,7 +199,6 @@ class SearchRepository:
 
             if any(character in token for character in "-_/+."):
                 prepared_tokens.append(f'"{token}"')
-
                 continue
 
             prepared_tokens.append(token)

@@ -147,6 +147,7 @@ def test_retrieve_passes_fts_candidates_to_bm25() -> None:
     repository.search_fts.return_value = [candidate]
 
     bm25_engine = MagicMock()
+    bm25_engine.processor.preprocess.return_value = ["aluminium"]
     bm25_engine.search.return_value = [
         {
             "rank": 1,
@@ -177,3 +178,17 @@ def test_retrieve_passes_fts_candidates_to_bm25() -> None:
     assert response["candidate_count"] == 1
     assert response["result_count"] == 1
     assert response["context"] == "structured context"
+
+
+def test_natural_language_question_builds_fts_or_query(
+    retrieval_setup: RetrievalService,
+) -> None:
+    response = retrieval_setup.retrieve(
+        "What material is specified for BR-1001?",
+        candidate_limit=10,
+        top_k=3,
+    )
+
+    assert response["candidate_count"] >= 1
+    assert response["result_count"] >= 1
+    assert response["context"]

@@ -146,9 +146,39 @@ class ContextBuilder:
             )
 
             if projected_length > max_characters:
+                if sections:
+                    break
+
+                truncated_section = cls._truncate_section(
+                    section,
+                    max_characters,
+                )
+
+                if truncated_section:
+                    sections.append(truncated_section)
+
                 break
 
             sections.append(section)
             current_length = projected_length
 
         return "\n\n---\n\n".join(sections)
+
+    @staticmethod
+    def _truncate_section(section: str, max_length: int) -> str:
+        marker = "[context truncated]"
+
+        if len(section) <= max_length:
+            return section
+
+        if max_length <= len(marker) + 1:
+            return section[:max_length]
+
+        budget = max_length - len(marker) - 1
+        truncated = section[:budget]
+        last_newline = truncated.rfind("\n")
+
+        if last_newline > budget // 2:
+            truncated = truncated[:last_newline]
+
+        return truncated.rstrip() + "\n" + marker

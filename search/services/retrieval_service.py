@@ -52,8 +52,9 @@ class RetrievalService:
         if top_k > candidate_limit:
             raise ValueError("top_k must not exceed candidate_limit.")
 
+        fts_query = self._build_fts_query(query)
         candidates = self.repository.search_fts(
-            query,
+            fts_query,
             limit=candidate_limit,
         )
 
@@ -81,3 +82,14 @@ class RetrievalService:
             "results": results,
             "context": context,
         }
+
+    def _build_fts_query(self, query: str) -> str:
+        tokens = self.bm25_engine.processor.preprocess(query)
+
+        if not tokens:
+            return query.strip()
+
+        if len(tokens) == 1:
+            return tokens[0]
+
+        return " OR ".join(tokens)

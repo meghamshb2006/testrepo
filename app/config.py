@@ -10,6 +10,8 @@ OPENAI_BASE_URL = os.getenv(
 )
 OPENAI_MODEL = os.getenv("OPENAI_MODEL")
 
+OPENAI_ANSWER_MODEL = os.getenv("OPENAI_ANSWER_MODEL") or OPENAI_MODEL
+
 DRAWING_DATABASE_PATH = os.getenv(
     "DRAWING_DATABASE_PATH",
     "data/engineering_drawings.db",
@@ -35,7 +37,7 @@ EMBEDDING_MODEL = os.getenv(
 )
 
 
-def validate_config():
+def validate_config() -> None:
     missing = []
 
     if not OPENAI_API_KEY:
@@ -43,6 +45,22 @@ def validate_config():
 
     if not OPENAI_MODEL:
         missing.append("OPENAI_MODEL")
+
+    if missing:
+        raise RuntimeError(
+            "Missing required environment variables: "
+            + ", ".join(missing)
+        )
+
+
+def validate_answer_config() -> None:
+    missing = []
+
+    if not OPENAI_API_KEY:
+        missing.append("OPENAI_API_KEY")
+
+    if not OPENAI_ANSWER_MODEL:
+        missing.append("OPENAI_ANSWER_MODEL or OPENAI_MODEL")
 
     if missing:
         raise RuntimeError(
