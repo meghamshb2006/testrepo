@@ -148,6 +148,18 @@ Endpoints:
 - `POST /api/documents` - upload PDF and render pages
 - `POST /api/documents/{document_id}/analyze` - analyse rendered pages
 
+## Milestone 6 evaluation
+
+Benchmark retrieval quality (Hit@k, MRR), grounded answers, refusals, and
+latency with the evaluation package:
+
+```powershell
+python evaluate_drawings.py --dataset evaluation\datasets\sample_benchmark.json --database data\drawing_search.db
+```
+
+See [evaluation/README.md](evaluation/README.md) for dataset schema, metrics,
+threshold flags, and answer-evaluation options.
+
 ## Current limitations
 
 - PDF input only

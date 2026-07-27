@@ -1,4 +1,4 @@
-﻿# Environment variables and secrets
+# Environment variables and secrets
 .env
 .env.*
 !.env.example
@@ -27,6 +27,12 @@ data/**/*.png
 *.log
 *.tmp
 *.bak
+
+# Evaluation outputs
+reports/
+evaluation/results/
+*.evaluation.json
+*.evaluation.md
 
 # Packaging
 build/
