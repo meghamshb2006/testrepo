@@ -5,6 +5,7 @@ from unittest.mock import MagicMock
 
 import openai
 import pytest
+from unittest.mock import patch
 
 from search.services.answer_generator import DrawingAnswerGenerator
 
@@ -100,3 +101,21 @@ def test_secrets_not_included_in_exceptions() -> None:
         assert secret not in str(exc)
     else:
         raise AssertionError("Expected RuntimeError")
+
+
+def test_injected_client_without_model_raises_value_error() -> None:
+    with patch(
+        "search.services.answer_generator.OPENAI_ANSWER_MODEL",
+        None,
+    ):
+        with pytest.raises(ValueError, match="model must not be blank"):
+            DrawingAnswerGenerator(client=_FakeClient(), model=None)
+
+
+def test_injected_client_with_explicit_model_works() -> None:
+    generator = DrawingAnswerGenerator(
+        client=_FakeClient("Grounded answer."),
+        model="test-model",
+    )
+
+    assert generator.generate("Valid prompt") == "Grounded answer."

@@ -52,7 +52,7 @@ class DrawingAnswerGenerator:
             self.model = model or OPENAI_ANSWER_MODEL
         else:
             self.client = client
-            self.model = model or OPENAI_ANSWER_MODEL or "test-model"
+            self.model = model or OPENAI_ANSWER_MODEL
 
         if not self.model or not str(self.model).strip():
             raise ValueError("model must not be blank.")

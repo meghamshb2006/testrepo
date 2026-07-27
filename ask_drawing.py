@@ -10,7 +10,6 @@ from pathlib import Path
 from app.config import SEARCH_DATABASE_PATH
 from search.database import SearchDatabase
 from search.repositories.search_repository import SearchRepository
-from search.services.answer_generator import DrawingAnswerGenerator
 from search.services.question_answering_service import (
     DrawingQuestionAnsweringService,
 )
@@ -104,10 +103,8 @@ def main() -> int:
         database.initialize()
         repository = SearchRepository(database)
         retrieval_service = RetrievalService(repository=repository)
-        answer_generator = DrawingAnswerGenerator()
         qa_service = DrawingQuestionAnsweringService(
             retrieval_service=retrieval_service,
-            answer_generator=answer_generator,
         )
 
         response = qa_service.answer(

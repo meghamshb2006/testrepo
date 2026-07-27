@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 from search.prompts.engineering_prompt import EngineeringPromptBuilder
+from search.services.answer_generator import DrawingAnswerGenerator
 from search.services.question_answering_service import (
     NO_EVIDENCE_ANSWER,
     DrawingQuestionAnsweringService,
@@ -103,6 +104,51 @@ def test_no_evidence_skips_llm(
     assert response["grounded"] is False
     assert response["answer"] == NO_EVIDENCE_ANSWER
     assert response["sources"] == []
+
+
+def test_no_evidence_does_not_create_answer_generator(
+    retrieval_without_evidence: dict,
+) -> None:
+    retrieval_service = MagicMock()
+    retrieval_service.retrieve.return_value = retrieval_without_evidence
+
+    service = DrawingQuestionAnsweringService(
+        retrieval_service=retrieval_service,
+    )
+
+    with patch(
+        "search.services.question_answering_service.DrawingAnswerGenerator"
+    ) as generator_cls:
+        response = service.answer("What material is used for widget Z?")
+
+    generator_cls.assert_not_called()
+    assert response["grounded"] is False
+    assert service.answer_generator is None
+
+
+def test_evidence_path_lazily_creates_answer_generator(
+    retrieval_with_evidence: dict,
+) -> None:
+    retrieval_service = MagicMock()
+    retrieval_service.retrieve.return_value = retrieval_with_evidence
+
+    service = DrawingQuestionAnsweringService(
+        retrieval_service=retrieval_service,
+    )
+
+    created_generator = MagicMock()
+    created_generator.generate.return_value = "Answer text."
+
+    with patch(
+        "search.services.question_answering_service.DrawingAnswerGenerator",
+        return_value=created_generator,
+    ) as generator_cls:
+        response = service.answer("What material is specified for BR-1001?")
+
+    generator_cls.assert_called_once_with()
+    created_generator.generate.assert_called_once()
+    assert service.answer_generator is created_generator
+    assert response["grounded"] is True
 
 
 def test_structured_sources_include_scores(

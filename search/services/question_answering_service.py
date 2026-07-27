@@ -102,10 +102,7 @@ class DrawingQuestionAnsweringService:
             return self._format_no_evidence_response(question, retrieval)
 
         if self.answer_generator is None:
-            raise RuntimeError(
-                "An answer generator is required when retrieval evidence "
-                "is available."
-            )
+            self.answer_generator = DrawingAnswerGenerator()
 
         prompt = self.prompt_builder.build(
             question=question,
