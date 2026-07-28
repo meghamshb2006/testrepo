@@ -2,8 +2,6 @@
 
 Proof-of-concept backend for **Johnson Electric** engineering drawing Q&A: ingest PDFs, index extracted drawing knowledge, retrieve evidence with lexical search, and answer questions only from that evidence.
 
-> **Status:** Milestones 1–7.3 complete (feature-complete lexical PoC). Milestone 8 is repository hardening and documentation. **Hermes integration is not included.**
-
 This README is intended to be readable in under 10 minutes. For architecture detail, see [`Architecture.md`](Architecture.md). For validating new drawing collections, see [`evaluation/COLLECTION_EVALUATION.md`](evaluation/COLLECTION_EVALUATION.md).
 
 ---
