@@ -4,6 +4,7 @@ import time
 
 from evaluation.metrics import normalise_identifier
 from evaluation.schemas import BenchmarkCase, RetrievalEvaluationResult
+from search.diagnostics.evaluation_diagnostics import EvaluationDiagnostics
 from search.services.retrieval_service import RetrievalService
 
 
@@ -144,10 +145,32 @@ class RetrievalEvaluator:
                 candidate_limit=candidate_limit,
                 top_k=top_k,
                 max_context_characters=max_context_characters,
+                include_trace=True,
             )
             latency_ms = (time.perf_counter() - started) * 1000.0
             results = retrieval["results"]
             retrieved = self._retrieved_identifiers(results)
+            confidence_level = retrieval.get("confidence_level")
+            expected_confidence = case.expected_confidence_level
+            confidence_match = None
+
+            if expected_confidence is not None and confidence_level is not None:
+                confidence_match = (
+                    str(confidence_level).upper() == expected_confidence
+                )
+
+            exact_match = None
+            if results:
+                exact_match = bool(results[0].get("exact_identifier_match"))
+
+            diagnostics = EvaluationDiagnostics.build_case_diagnostics(
+                trace=retrieval.get("retrieval_trace"),
+                expected_identifiers=expected,
+                retrieved_identifiers=retrieved,
+                confidence_explanation=retrieval.get(
+                    "confidence_explanation"
+                ),
+            )
 
             return RetrievalEvaluationResult(
                 case_id=case.case_id,
@@ -162,6 +185,13 @@ class RetrievalEvaluator:
                 candidate_count=retrieval["candidate_count"],
                 latency_ms=latency_ms,
                 category=case.category,
+                context_length=len(retrieval.get("context") or ""),
+                confidence_score=retrieval.get("confidence_score"),
+                confidence_level=confidence_level,
+                expected_confidence_level=expected_confidence,
+                confidence_level_match=confidence_match,
+                exact_identifier_match=exact_match,
+                diagnostics=diagnostics,
             )
 
         except Exception as exc:

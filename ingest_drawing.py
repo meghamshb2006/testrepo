@@ -14,7 +14,8 @@ from search.services.drawing_ingestion_service import DrawingIngestionService
 def main() -> int:
     parser = argparse.ArgumentParser(
         description=(
-            "Ingest an engineering drawing PDF into the search index."
+            "Ingest a single engineering drawing PDF into the lexical "
+            "search index (drawing_search.db)."
         )
     )
     parser.add_argument(
@@ -26,7 +27,10 @@ def main() -> int:
         "--db-path",
         type=Path,
         default=None,
-        help="Optional override for the search database path.",
+        help=(
+            "Override search database path "
+            "(default: SEARCH_DATABASE_PATH / data/drawing_search.db)."
+        ),
     )
 
     args = parser.parse_args()

@@ -1,0 +1,77 @@
+{
+  "name": "retrieval-intelligence-m71",
+  "version": "1.0",
+  "description": "Milestone 7.1 category suites for lexical retrieval intelligence.",
+  "cases": [
+    {
+      "case_id": "drawing-number-dr-1023",
+      "question": "Find drawing DR-1023",
+      "expected_drawing_ids": ["drawing-001"],
+      "expected_drawing_numbers": ["DR-1023"],
+      "category": "drawing_number",
+      "expected_confidence_level": "HIGH",
+      "top_k": 3,
+      "candidate_limit": 10
+    },
+    {
+      "case_id": "revision-c",
+      "question": "What drawings are revision C?",
+      "expected_drawing_ids": ["drawing-001"],
+      "expected_drawing_numbers": ["DR-1023"],
+      "category": "revision",
+      "expected_confidence_level": "MEDIUM",
+      "top_k": 3,
+      "candidate_limit": 10
+    },
+    {
+      "case_id": "material-6061-t6",
+      "question": "Which drawing uses material 6061-T6?",
+      "expected_drawing_ids": ["drawing-001"],
+      "expected_drawing_numbers": ["DR-1023"],
+      "category": "material",
+      "expected_confidence_level": "HIGH",
+      "top_k": 3,
+      "candidate_limit": 10
+    },
+    {
+      "case_id": "standard-iso-2768",
+      "question": "Find drawings that reference ISO 2768",
+      "expected_drawing_ids": ["drawing-001"],
+      "expected_drawing_numbers": ["DR-1023"],
+      "category": "standard",
+      "expected_confidence_level": "MEDIUM",
+      "top_k": 3,
+      "candidate_limit": 10
+    },
+    {
+      "case_id": "component-br-1001",
+      "question": "What material is specified for BR-1001?",
+      "expected_drawing_ids": ["drawing-001"],
+      "expected_drawing_numbers": ["DR-1023"],
+      "expected_answer_terms": ["6061-T6"],
+      "category": "component",
+      "expected_confidence_level": "HIGH",
+      "top_k": 3,
+      "candidate_limit": 10
+    },
+    {
+      "case_id": "general-bracket",
+      "question": "mounting bracket aluminium",
+      "expected_drawing_ids": ["drawing-001"],
+      "category": "general",
+      "expected_confidence_level": "MEDIUM",
+      "top_k": 3,
+      "candidate_limit": 10
+    },
+    {
+      "case_id": "no-match-titanium",
+      "question": "nonexistent titanium widget ZX-9999",
+      "expected_drawing_ids": [],
+      "answerable": false,
+      "category": "general",
+      "expected_confidence_level": "LOW",
+      "top_k": 3,
+      "candidate_limit": 10
+    }
+  ]
+}

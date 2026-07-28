@@ -122,6 +122,83 @@ For automated tests, inject a fake answer generator into
 - Sample dataset IDs must match your local index.
 - Threshold flags are only meaningful after the dataset is aligned.
 - No concurrent evaluation in Milestone 6.
+- Production M7.1 comparison against a live index requires re-ingest so
+  new FTS fields (`revision`, `engineering_standards`, `components`,
+  `body`) are populated; additive migration leaves older rows empty for
+  those columns until documents are upserted again.
+
+## Retrieval confidence (Milestone 7.1)
+
+`RetrievalConfidenceEstimator` scores each retrieve() call in `[0, 1]`
+from weighted deterministic signals:
+
+| Signal | Default weight | Meaning |
+|--------|----------------|---------|
+| Top BM25 (sigmoid) | 0.25 | Strength of the top hit |
+| Top-1 vs top-2 gap (sigmoid) | 0.20 | Separation / ambiguity |
+| Exact identifier match | 0.25 | Query ID equals drawing/part/material/standard fields |
+| Metadata field hits | 0.15 | Relevant identity fields present on the top hit |
+| Result/candidate sanity | 0.10 | Non-empty ranking relative to candidate pool |
+| Context quality | 0.05 | Non-empty context, not only `[context truncated]` |
+
+Levels (config overrides via env):
+
+- `HIGH` when score ≥ `RETRIEVAL_CONFIDENCE_HIGH_THRESHOLD` (default `0.80`)
+- `MEDIUM` when score ≥ `RETRIEVAL_CONFIDENCE_MEDIUM_THRESHOLD` (default `0.50`)
+- `LOW` otherwise
+
+Empty retrieval always yields score `0.0` / `LOW`.
+
+QA treats `confidence_level == LOW` with no exact identifier match as
+no-evidence (skips the LLM).
+
+Category suite: `evaluation/datasets/retrieval_intelligence_suites.json`.
+
+Example retrieval-only run:
+
+```bash
+python evaluate_drawings.py \
+  --dataset evaluation/datasets/retrieval_intelligence_suites.json \
+  --database data/drawing_search.db \
+  --output-json reports/m71_retrieval_report.json \
+  --output-markdown reports/m71_retrieval_report.md \
+  --output-csv reports/m71_retrieval_report.csv
+```
+
+## Observability (Milestone 7.2)
+
+Developer-facing diagnostics do **not** change ranking.
+
+- `retrieve(..., include_trace=True)` adds `retrieval_trace` with stage
+  latencies, identifiers, score breakdowns (annotation-only), and
+  confidence explanation.
+- Evaluation always requests traces and attaches per-case `diagnostics`.
+- Structured logging: set `RETRIEVAL_OBSERVABILITY_LOGGING=true`.
+- Rebuild index: `python rebuild_search_index.py --database data/drawing_search.db`
+- Health report: `python retrieval_health_report.py --database data/drawing_search.db --output-markdown reports/retrieval_health.md`
+
+Score breakdowns expose `base_bm25_score` / matched fields / tokens.
+`final_score` equals BM25; identifier “bonuses” are explanatory only.
+
+## Validation & dataset readiness (Milestone 7.3)
+
+See the full runbook: [`COLLECTION_EVALUATION.md`](COLLECTION_EVALUATION.md).
+
+Additive tooling (no ranking changes):
+
+| CLI | Purpose |
+|-----|---------|
+| `ingest_dataset.py` | Bulk PDF ingest |
+| `manage_dataset.py` | List/count/validate/export/scaffold/seed |
+| `run_regression_benchmark.py` | Eval + baseline regression gate |
+| `stress_test_retrieval.py` | Latency/throughput stress harness |
+
+Golden fixtures:
+
+- `evaluation/datasets/golden_seed_documents.json`
+- `evaluation/datasets/golden_retrieval_benchmark.json`
+
+Reports now include a **Category Breakdown** section when cases set `category`.
 
 ## Adapting the sample dataset
 

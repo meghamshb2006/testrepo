@@ -7,6 +7,53 @@ from search.models.search_document import SearchDocument
 
 _FTS_OPERATOR_PATTERN = re.compile(r"^\s*(AND|OR|NOT)\s*$", re.IGNORECASE)
 
+_DOCUMENT_COLUMNS = (
+    "drawing_id",
+    "filename",
+    "drawing_number",
+    "revision",
+    "title",
+    "material",
+    "finish",
+    "units",
+    "sheet_number",
+    "scale",
+    "part_number",
+    "part_numbers",
+    "dimensions_text",
+    "tolerances_text",
+    "notes_text",
+    "manufacturing_process",
+    "engineering_standards",
+    "referenced_parts",
+    "components",
+    "engineering_notes",
+    "body",
+    "searchable_text",
+    "analysis_version",
+    "created_at",
+    "updated_at",
+)
+
+_FTS_INSERT_COLUMNS = (
+    "drawing_id",
+    "filename",
+    "drawing_number",
+    "revision",
+    "title",
+    "material",
+    "finish",
+    "units",
+    "part_numbers",
+    "dimensions_text",
+    "tolerances_text",
+    "notes_text",
+    "engineering_standards",
+    "components",
+    "body",
+    "searchable_text",
+)
+
 
 class SearchRepository:
     def __init__(self, database: SearchDatabase):
@@ -14,62 +61,52 @@ class SearchRepository:
 
     def upsert(self, document: SearchDocument) -> None:
         cursor = self.database.conn.cursor()
+        placeholders = ", ".join("?" for _ in _DOCUMENT_COLUMNS)
+        column_list = ", ".join(_DOCUMENT_COLUMNS)
+        update_assignments = ",\n                ".join(
+            f"{column} = excluded.{column}"
+            for column in _DOCUMENT_COLUMNS
+            if column != "drawing_id"
+        )
+
+        values = (
+            document.drawing_id,
+            document.filename,
+            document.drawing_number,
+            document.revision,
+            document.title,
+            document.material,
+            document.finish,
+            document.units,
+            document.sheet_number,
+            document.scale,
+            document.part_number,
+            document.part_numbers,
+            document.dimensions_text,
+            document.tolerances_text,
+            document.notes_text,
+            document.manufacturing_process,
+            document.engineering_standards,
+            document.referenced_parts,
+            document.components,
+            document.engineering_notes,
+            document.body,
+            document.searchable_text,
+            document.analysis_version,
+            document.created_at.isoformat(),
+            document.updated_at.isoformat(),
+        )
 
         cursor.execute(
-            """
+            f"""
             INSERT INTO drawing_search_documents (
-                drawing_id,
-                filename,
-                drawing_number,
-                revision,
-                title,
-                material,
-                finish,
-                units,
-                part_numbers,
-                dimensions_text,
-                tolerances_text,
-                notes_text,
-                searchable_text,
-                analysis_version,
-                created_at,
-                updated_at
+                {column_list}
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES ({placeholders})
             ON CONFLICT(drawing_id) DO UPDATE SET
-                filename = excluded.filename,
-                drawing_number = excluded.drawing_number,
-                revision = excluded.revision,
-                title = excluded.title,
-                material = excluded.material,
-                finish = excluded.finish,
-                units = excluded.units,
-                part_numbers = excluded.part_numbers,
-                dimensions_text = excluded.dimensions_text,
-                tolerances_text = excluded.tolerances_text,
-                notes_text = excluded.notes_text,
-                searchable_text = excluded.searchable_text,
-                analysis_version = excluded.analysis_version,
-                updated_at = excluded.updated_at
+                {update_assignments}
             """,
-            (
-                document.drawing_id,
-                document.filename,
-                document.drawing_number,
-                document.revision,
-                document.title,
-                document.material,
-                document.finish,
-                document.units,
-                document.part_numbers,
-                document.dimensions_text,
-                document.tolerances_text,
-                document.notes_text,
-                document.searchable_text,
-                document.analysis_version,
-                document.created_at.isoformat(),
-                document.updated_at.isoformat(),
-            ),
+            values,
         )
 
         cursor.execute(
@@ -77,38 +114,35 @@ class SearchRepository:
             (document.drawing_id,),
         )
 
+        fts_placeholders = ", ".join("?" for _ in _FTS_INSERT_COLUMNS)
+        fts_column_list = ", ".join(_FTS_INSERT_COLUMNS)
+        fts_values = (
+            document.drawing_id,
+            document.filename,
+            document.drawing_number or "",
+            document.revision or "",
+            document.title or "",
+            document.material or "",
+            document.finish or "",
+            document.units or "",
+            document.part_numbers,
+            document.dimensions_text,
+            document.tolerances_text,
+            document.notes_text,
+            document.engineering_standards,
+            document.components,
+            document.body,
+            document.searchable_text,
+        )
+
         cursor.execute(
-            """
+            f"""
             INSERT INTO drawing_search_fts (
-                drawing_id,
-                filename,
-                drawing_number,
-                title,
-                material,
-                finish,
-                units,
-                part_numbers,
-                dimensions_text,
-                tolerances_text,
-                notes_text,
-                searchable_text
+                {fts_column_list}
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES ({fts_placeholders})
             """,
-            (
-                document.drawing_id,
-                document.filename,
-                document.drawing_number or "",
-                document.title or "",
-                document.material or "",
-                document.finish or "",
-                document.units or "",
-                document.part_numbers,
-                document.dimensions_text,
-                document.tolerances_text,
-                document.notes_text,
-                document.searchable_text,
-            ),
+            fts_values,
         )
 
         self.database.conn.commit()

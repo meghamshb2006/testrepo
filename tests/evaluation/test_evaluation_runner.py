@@ -182,4 +182,5 @@ def test_case_specific_limits_override_defaults() -> None:
         candidate_limit=5,
         top_k=2,
         max_context_characters=1000,
+        include_trace=True,
     )

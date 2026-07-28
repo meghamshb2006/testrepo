@@ -50,19 +50,24 @@ def _print_human_readable(response: dict, show_context: bool) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser(
         description=(
-            "Ask a grounded question over indexed engineering drawings."
+            "Ask a grounded question over indexed engineering drawings. "
+            "Answers are based only on retrieved evidence; the LLM is "
+            "skipped when evidence is missing or confidence is too low."
         )
     )
     parser.add_argument(
         "question",
         type=str,
-        help="Question to answer using indexed drawing data.",
+        help="Natural-language question about indexed drawings.",
     )
     parser.add_argument(
         "--database",
         type=Path,
         default=None,
-        help="Path to the search SQLite database.",
+        help=(
+            "Path to drawing_search.db "
+            "(default: SEARCH_DATABASE_PATH)."
+        ),
     )
     parser.add_argument(
         "--candidate-limit",

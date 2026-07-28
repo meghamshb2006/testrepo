@@ -212,6 +212,70 @@ def test_invalid_question_rejected() -> None:
         service.answer("   ")
 
 
+def test_low_confidence_without_exact_match_skips_llm(
+    retrieval_with_evidence: dict,
+) -> None:
+    retrieval = dict(retrieval_with_evidence)
+    retrieval["confidence_level"] = "LOW"
+    retrieval["confidence_score"] = 0.2
+    retrieval["confidence_signals"] = {"exact_identifier_match": False}
+    retrieval["results"] = [
+        {
+            **retrieval_with_evidence["results"][0],
+            "exact_identifier_match": False,
+            "matched_identifiers": [],
+        }
+    ]
+
+    retrieval_service = MagicMock()
+    retrieval_service.retrieve.return_value = retrieval
+
+    answer_generator = MagicMock()
+
+    service = DrawingQuestionAnsweringService(
+        retrieval_service=retrieval_service,
+        answer_generator=answer_generator,
+    )
+
+    response = service.answer("vague question")
+
+    answer_generator.generate.assert_not_called()
+    assert response["grounded"] is False
+    assert response["answer"] == NO_EVIDENCE_ANSWER
+    assert response["confidence_level"] == "LOW"
+
+
+def test_low_confidence_with_exact_match_still_answers(
+    retrieval_with_evidence: dict,
+) -> None:
+    retrieval = dict(retrieval_with_evidence)
+    retrieval["confidence_level"] = "LOW"
+    retrieval["confidence_score"] = 0.4
+    retrieval["results"] = [
+        {
+            **retrieval_with_evidence["results"][0],
+            "exact_identifier_match": True,
+            "matched_identifiers": ["BR-1001"],
+        }
+    ]
+
+    retrieval_service = MagicMock()
+    retrieval_service.retrieve.return_value = retrieval
+
+    answer_generator = MagicMock()
+    answer_generator.generate.return_value = "Answer text."
+
+    service = DrawingQuestionAnsweringService(
+        retrieval_service=retrieval_service,
+        answer_generator=answer_generator,
+    )
+
+    response = service.answer("What material is specified for BR-1001?")
+
+    answer_generator.generate.assert_called_once()
+    assert response["grounded"] is True
+
+
 def test_custom_prompt_builder_used(
     retrieval_with_evidence: dict,
 ) -> None:

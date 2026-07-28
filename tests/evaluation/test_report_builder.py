@@ -71,5 +71,13 @@ def test_markdown_summary_and_pipe_escaping() -> None:
     assert "Hit@1: 100.0%" in markdown
     assert "case\\|a" in markdown
     assert "12.3 ms" in markdown
+    assert "false positive rate" in markdown.lower()
     assert "context" not in markdown.lower() or "ContextBuilder" not in markdown
     assert "SYSTEM INSTRUCTIONS" not in markdown
+
+
+def test_csv_output_has_header_and_row() -> None:
+    csv_text = EvaluationReportBuilder.to_csv(_sample_evaluation())
+
+    assert "case_id,category,question" in csv_text
+    assert "case|a" in csv_text
