@@ -1,1 +1,1 @@
-"""Milestone 6 evaluation and benchmarking package."""
+"""Evaluation and benchmarking package for lexical retrieval and grounded QA."""

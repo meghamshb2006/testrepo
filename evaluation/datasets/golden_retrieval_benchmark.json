@@ -1,0 +1,87 @@
+{
+  "name": "golden-retrieval-benchmark",
+  "version": "1.0.0",
+  "description": "Golden lexical retrieval suite aligned with evaluation/datasets/golden_seed_documents.json. Seed the index offline with manage_dataset.py seed-documents before running.",
+  "cases": [
+    {
+      "case_id": "golden-drawing-dr-1001",
+      "question": "Find drawing DR-1001",
+      "expected_drawing_ids": ["drawing-001"],
+      "expected_drawing_numbers": ["DR-1001"],
+      "expected_filenames": ["aluminium_mounting_bracket.pdf"],
+      "category": "drawing_number",
+      "expected_confidence_level": "HIGH",
+      "top_k": 3,
+      "candidate_limit": 10
+    },
+    {
+      "case_id": "golden-material-6061",
+      "question": "Which drawing uses material 6061-T6?",
+      "expected_drawing_ids": ["drawing-001"],
+      "expected_drawing_numbers": ["DR-1001"],
+      "expected_answer_terms": ["6061-T6"],
+      "category": "material",
+      "expected_confidence_level": "HIGH",
+      "top_k": 3,
+      "candidate_limit": 10
+    },
+    {
+      "case_id": "golden-revision-c",
+      "question": "What is the revision of drawing DR-1001?",
+      "expected_drawing_ids": ["drawing-001"],
+      "expected_drawing_numbers": ["DR-1001"],
+      "expected_answer_terms": ["C"],
+      "category": "revision",
+      "top_k": 3,
+      "candidate_limit": 10
+    },
+    {
+      "case_id": "golden-standard-iso",
+      "question": "Find drawings that reference ISO 2768",
+      "expected_drawing_ids": ["drawing-001"],
+      "expected_drawing_numbers": ["DR-1001"],
+      "category": "standard",
+      "top_k": 3,
+      "candidate_limit": 10
+    },
+    {
+      "case_id": "golden-component-br-1001",
+      "question": "What material is specified for BR-1001?",
+      "expected_drawing_ids": ["drawing-001"],
+      "expected_drawing_numbers": ["DR-1001"],
+      "expected_answer_terms": ["6061-T6"],
+      "category": "component",
+      "expected_confidence_level": "HIGH",
+      "top_k": 3,
+      "candidate_limit": 10
+    },
+    {
+      "case_id": "golden-housing-dr-2048",
+      "question": "Find motor housing DR-2048",
+      "expected_drawing_ids": ["drawing-002"],
+      "expected_drawing_numbers": ["DR-2048"],
+      "category": "drawing_number",
+      "top_k": 3,
+      "candidate_limit": 10
+    },
+    {
+      "case_id": "golden-copper-busbar",
+      "question": "copper busbar tin plated",
+      "expected_drawing_ids": ["drawing-003"],
+      "expected_drawing_numbers": ["DR-3003"],
+      "category": "general",
+      "top_k": 3,
+      "candidate_limit": 10
+    },
+    {
+      "case_id": "golden-unanswerable",
+      "question": "nonexistent titanium widget ZX-9999",
+      "expected_drawing_ids": [],
+      "answerable": false,
+      "category": "general",
+      "expected_confidence_level": "LOW",
+      "top_k": 3,
+      "candidate_limit": 10
+    }
+  ]
+}

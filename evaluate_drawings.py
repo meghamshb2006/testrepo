@@ -65,8 +65,9 @@ def _thresholds_failed(args: argparse.Namespace, summary: dict) -> bool:
 def main() -> int:
     parser = argparse.ArgumentParser(
         description=(
-            "Evaluate engineering drawing retrieval and optional "
-            "grounded answer quality."
+            "Evaluate engineering drawing retrieval (and optionally "
+            "grounded answers) against a JSON benchmark dataset. "
+            "Retrieval-only mode does not require API credentials."
         )
     )
     parser.add_argument(
@@ -115,6 +116,12 @@ def main() -> int:
         type=Path,
         default=None,
         help="Write the evaluation report as Markdown.",
+    )
+    parser.add_argument(
+        "--output-csv",
+        type=Path,
+        default=None,
+        help="Write per-case retrieval metrics as CSV.",
     )
     parser.add_argument(
         "--fail-below-hit-at-1",
@@ -190,6 +197,13 @@ def main() -> int:
             args.output_markdown.parent.mkdir(parents=True, exist_ok=True)
             args.output_markdown.write_text(
                 EvaluationReportBuilder.to_markdown(evaluation),
+                encoding="utf-8",
+            )
+
+        if args.output_csv is not None:
+            args.output_csv.parent.mkdir(parents=True, exist_ok=True)
+            args.output_csv.write_text(
+                EvaluationReportBuilder.to_csv(evaluation),
                 encoding="utf-8",
             )
 

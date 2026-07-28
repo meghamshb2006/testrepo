@@ -81,14 +81,21 @@ def test_builds_search_document_from_rich_analysis(
     assert document.material == "Aluminium 6061-T6"
     assert document.finish == "Anodised"
     assert document.units == "mm"
+    assert document.part_number == "BR-1001"
+    assert document.analysis_version == "1.1"
     assert "BR-1001" in document.part_numbers
     assert "120 mm" in document.dimensions_text
     assert "ISO-2768-mK" in document.tolerances_text
     assert "flatness 0.05 | A | B" in document.tolerances_text
     assert "Deburr all edges" in document.notes_text
+    assert "ISO-2768-MK" in document.engineering_standards
+    assert "Aluminium mounting bracket" in document.components
+    assert "Bracket for motor assembly" in document.body
+    assert "Deburr all edges" in document.manufacturing_process
     assert "6061-T6" in document.searchable_text
-    assert "ISO-2768-mK" in document.searchable_text
+    assert "ISO-2768" in document.searchable_text
     assert "BR-1001" in document.searchable_text
+    assert document.searchable_text.count("BR-1001") == 1
 
 
 def test_empty_analysis_raises(builder: SearchDocumentBuilder) -> None:

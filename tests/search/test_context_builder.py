@@ -64,3 +64,37 @@ def test_includes_multiple_sections_when_space_allows() -> None:
 
     assert "Retrieved Drawing 1" in context
     assert "Retrieved Drawing 2" in context
+
+
+def test_dedupes_identical_field_values_and_prefers_exact_match() -> None:
+    results = [
+        {
+            "drawing_id": "drawing-002",
+            "filename": "other.pdf",
+            "drawing_number": "DR-2",
+            "title": "Other",
+            "notes_text": "Deburr edges",
+            "engineering_notes": "Deburr edges",
+            "bm25_score": 2.0,
+            "exact_identifier_match": False,
+        },
+        {
+            "drawing_id": "drawing-001",
+            "filename": "match.pdf",
+            "drawing_number": "DR-1",
+            "title": "Exact",
+            "bm25_score": 1.0,
+            "exact_identifier_match": True,
+            "matched_identifiers": ["DR-1"],
+        },
+    ]
+
+    context = ContextBuilder.build_context(
+        results,
+        max_documents=2,
+        max_characters=4000,
+    )
+
+    assert context.index("drawing-001") < context.index("drawing-002")
+    assert context.count("Deburr edges") == 1
+    assert "Exact Identifier Match: yes" in context

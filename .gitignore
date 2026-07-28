@@ -22,15 +22,19 @@ Thumbs.db
 data/*.db
 data/documents/
 data/**/*.png
+!data/.gitkeep
 
 # Logs and temporary files
 *.log
 *.tmp
 *.bak
 
-# Evaluation outputs
-reports/
+# Evaluation outputs (keep folder placeholders)
+reports/*
+!reports/.gitkeep
 evaluation/results/
+evaluation/baselines/*
+!evaluation/baselines/.gitkeep
 *.evaluation.json
 *.evaluation.md
 

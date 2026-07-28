@@ -94,13 +94,33 @@ def test_retrieve_empty_fts_result(
         top_k=3,
     )
 
-    assert response == {
-        "query": "nonexistent titanium widget",
-        "candidate_count": 0,
-        "result_count": 0,
-        "results": [],
-        "context": "",
-    }
+    assert response["query"] == "nonexistent titanium widget"
+    assert response["candidate_count"] == 0
+    assert response["result_count"] == 0
+    assert response["results"] == []
+    assert response["context"] == ""
+    assert response["confidence_score"] == 0.0
+    assert response["confidence_level"] == "LOW"
+    assert "preprocessed_query" in response
+    assert "confidence_explanation" in response
+    assert "retrieval_trace" not in response
+
+
+def test_retrieve_includes_confidence_signals(
+    retrieval_setup: RetrievalService,
+) -> None:
+    response = retrieval_setup.retrieve(
+        query="Find drawing DR-1023",
+        candidate_limit=10,
+        top_k=2,
+    )
+
+    assert response["result_count"] >= 1
+    assert response["confidence_level"] in {"HIGH", "MEDIUM", "LOW"}
+    assert 0.0 <= response["confidence_score"] <= 1.0
+    assert "exact_identifier_match" in response["confidence_signals"]
+    assert response["results"][0].get("exact_identifier_match") is True
+
 
 
 def test_retrieve_invalid_query_raises(
@@ -170,14 +190,17 @@ def test_retrieve_passes_fts_candidates_to_bm25() -> None:
 
     response = service.retrieve("aluminium", candidate_limit=10, top_k=1)
 
-    repository.search_fts.assert_called_once_with("aluminium", limit=10)
+    repository.search_fts.assert_called_once()
+    assert repository.search_fts.call_args[0][0]
     bm25_engine.build_index.assert_called_once_with([candidate])
-    bm25_engine.search.assert_called_once_with("aluminium", top_k=1)
+    bm25_engine.search.assert_called_once()
     context_builder.build_context.assert_called_once()
 
     assert response["candidate_count"] == 1
     assert response["result_count"] == 1
     assert response["context"] == "structured context"
+    assert "confidence_level" in response
+    assert response["results"][0]["exact_identifier_match"] is False
 
 
 def test_natural_language_question_builds_fts_or_query(

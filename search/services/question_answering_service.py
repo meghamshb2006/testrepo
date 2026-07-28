@@ -56,7 +56,7 @@ class DrawingQuestionAnsweringService:
         question: str,
         retrieval: dict[str, Any],
     ) -> dict[str, Any]:
-        return {
+        response = {
             "question": question,
             "answer": NO_EVIDENCE_ANSWER,
             "grounded": False,
@@ -65,6 +65,27 @@ class DrawingQuestionAnsweringService:
             "sources": [],
             "context": retrieval.get("context", ""),
         }
+
+        for key in (
+            "confidence_score",
+            "confidence_level",
+            "confidence_signals",
+            "confidence_explanation",
+            "preprocessed_query",
+        ):
+            if key in retrieval:
+                response[key] = retrieval[key]
+
+        return response
+
+    @staticmethod
+    def _has_exact_identifier_match(retrieval: dict[str, Any]) -> bool:
+        for result in retrieval.get("results", []):
+            if result.get("exact_identifier_match"):
+                return True
+
+        signals = retrieval.get("confidence_signals") or {}
+        return bool(signals.get("exact_identifier_match"))
 
     def answer(
         self,
@@ -92,9 +113,15 @@ class DrawingQuestionAnsweringService:
             max_context_characters=max_context_characters,
         )
 
+        low_confidence_no_match = (
+            retrieval.get("confidence_level") == "LOW"
+            and not self._has_exact_identifier_match(retrieval)
+        )
+
         if (
             retrieval["result_count"] == 0
             or not retrieval.get("context", "").strip()
+            or low_confidence_no_match
         ):
             logger.debug(
                 "No retrieval evidence for question; skipping LLM call."
@@ -111,7 +138,7 @@ class DrawingQuestionAnsweringService:
 
         answer_text = self.answer_generator.generate(prompt)
 
-        return {
+        response = {
             "question": question,
             "answer": answer_text,
             "grounded": True,
@@ -120,3 +147,15 @@ class DrawingQuestionAnsweringService:
             "sources": self._extract_sources(retrieval["results"]),
             "context": retrieval["context"],
         }
+
+        for key in (
+            "confidence_score",
+            "confidence_level",
+            "confidence_signals",
+            "confidence_explanation",
+            "preprocessed_query",
+        ):
+            if key in retrieval:
+                response[key] = retrieval[key]
+
+        return response

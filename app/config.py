@@ -36,6 +36,23 @@ EMBEDDING_MODEL = os.getenv(
     "EMBEDDING_MODEL",
 )
 
+RETRIEVAL_CONFIDENCE_HIGH_THRESHOLD = float(
+    os.getenv("RETRIEVAL_CONFIDENCE_HIGH_THRESHOLD", "0.80")
+)
+RETRIEVAL_CONFIDENCE_MEDIUM_THRESHOLD = float(
+    os.getenv("RETRIEVAL_CONFIDENCE_MEDIUM_THRESHOLD", "0.50")
+)
+RETRIEVAL_EXACT_IDENTIFIER_BOOST_WEIGHT = float(
+    os.getenv("RETRIEVAL_EXACT_IDENTIFIER_BOOST_WEIGHT", "0.25")
+)
+
+RETRIEVAL_OBSERVABILITY_LOGGING = os.getenv(
+    "RETRIEVAL_OBSERVABILITY_LOGGING",
+    "false",
+).strip().lower() in {"1", "true", "yes", "on"}
+
+RETRIEVAL_LOG_LEVEL = os.getenv("RETRIEVAL_LOG_LEVEL", "INFO").strip().upper()
+
 
 def validate_config() -> None:
     missing = []
